@@ -35,7 +35,9 @@ jobs:
 
       - name: Reprendre les données déjà publiées
         run: |
-          curl -sfL https://aykutdigital.github.io/actu-cyber/data.json -o public/data.json \
+          # Plusieurs tentatives : repartir des données de départ ferait perdre (et repayer) les analyses récentes.
+          curl -sfL --retry 5 --retry-delay 10 --retry-all-errors \
+            https://aykutdigital.github.io/actu-cyber/data.json -o public/data.json \
             || cp data/seed.json public/data.json
 
       - name: Récupérer, analyser et traduire les nouvelles actus

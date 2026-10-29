@@ -1,0 +1,56 @@
+name: Mise à jour des actus cyber
+
+on:
+  schedule:
+    - cron: "0 */3 * * *" # toutes les 3 heures
+  workflow_dispatch: # bouton « Run workflow » pour lancer à la main
+  push:
+    branches: [main] # republie le site après une modification du code (sans analyse)
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Reprendre les données déjà publiées
+        run: |
+          curl -sfL https://aykutdigital.github.io/actu-cyber/data.json -o public/data.json \
+            || cp data/seed.json public/data.json
+
+      - name: Récupérer, analyser et traduire les nouvelles actus
+        if: github.event_name != 'push'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+          MAX_ANALYSES: ${{ vars.MAX_ANALYSES || '15' }}
+        run: npm run update
+
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

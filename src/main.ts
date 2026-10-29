@@ -1,12 +1,15 @@
 import "./style.css";
 import { Capacitor } from "@capacitor/core";
+import { BackgroundRunner } from "@capacitor/background-runner";
 import type { Article } from "./feeds";
 import type { Gravite, Summary } from "./summarize";
 import { NOT_DISCLOSED, T, UI_LANGS, type UiLang } from "./i18n";
 
 // Les fiches sont produites toutes les 3 h par l'automatisation (scripts/update.ts)
 // et publiées avec le site. L'app Android lit le même fichier en ligne.
-const DATA_URL = Capacitor.isNativePlatform() ? "https://aykutdigital.github.io/actu-cyber/data.json" : "./data.json";
+const NATIVE = Capacitor.isNativePlatform();
+const RUNNER = "fr.alertis.actucyber.check"; // label de capacitor.config.json
+const DATA_URL = NATIVE ? "https://aykutdigital.github.io/actu-cyber/data.json" : "./data.json";
 const GRAVITES: Gravite[] = ["critique", "elevee", "moyenne", "faible"];
 // Préfixe que l'analyse met devant une hypothèse, dans chaque langue.
 const HYPOTHESIS = /(Probable|Likely|Muhtemel(?:en)?|محتمل|Вероятно)\s*[:：]\s*/u;
@@ -16,6 +19,9 @@ const ICON = {
   search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
   pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>`,
   chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`,
+  bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
+  bellOff: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/></svg>`,
+  download: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>`,
   arrow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>`,
   target: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>`,
   how: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>`,
@@ -53,6 +59,8 @@ let filter: Gravite | "all" = "all";
 let query = "";
 let loading = false;
 let failed = false;
+let notifEnabled: boolean = load("notifEnabled", true);
+let flash = ""; // message temporaire dans la ligne d'état
 let animateNext = true; // cascade d'entrée uniquement au premier affichage des données
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -103,7 +111,9 @@ function buildShell() {
           <div class="brand">
             <h1 data-t="title"></h1>
             <p class="tagline" data-t="tagline"></p>
+            ${NATIVE ? "" : `<a class="download" href="./VeilleCyber.apk" download>${ICON.download}<span data-t="download"></span></a>`}
           </div>
+          ${NATIVE ? `<button class="icon-btn" id="notif"></button>` : ""}
           <button class="icon-btn" id="refresh">${ICON.refresh}</button>
         </div>
         <div class="segmented" id="langs" role="group">
@@ -129,7 +139,7 @@ function applyLanguage() {
   document.documentElement.dir = uiLang === "ar" ? "rtl" : "ltr";
   document.title = s.title;
   app.querySelectorAll<HTMLElement>("[data-t]").forEach((el) => {
-    el.textContent = s[el.dataset.t as "title" | "tagline"];
+    el.textContent = s[el.dataset.t as "title" | "tagline" | "download"];
   });
   $<HTMLInputElement>("#search").placeholder = s.search;
   $("#refresh").setAttribute("aria-label", s.fetching);
@@ -144,6 +154,7 @@ function renderStatus() {
   if (loading && !data.updatedAt) parts.push(s.fetching);
   if (data.updatedAt) parts.push(`${s.updated} ${relDate(data.updatedAt)}`);
   if (failed) parts.push(s.offline);
+  if (flash) parts.push(flash);
   $("#status").textContent = parts.join(" · ");
   $("#refresh").classList.toggle("loading", loading);
 }
@@ -246,6 +257,64 @@ function render() {
   list.innerHTML = html;
 }
 
+// --- notifications (app Android uniquement) ---
+function renderNotifButton() {
+  const btn = $("#notif");
+  if (!btn) return;
+  btn.innerHTML = notifEnabled ? ICON.bell : ICON.bellOff;
+  btn.setAttribute("aria-pressed", String(notifEnabled));
+  btn.setAttribute("aria-label", notifEnabled ? t().notifOn : t().notifOff);
+}
+
+function showFlash(message: string) {
+  flash = message;
+  renderStatus();
+  setTimeout(() => {
+    if (flash === message) {
+      flash = "";
+      renderStatus();
+    }
+  }, 4000);
+}
+
+async function configureRunner() {
+  await BackgroundRunner.dispatchEvent({ label: RUNNER, event: "configure", details: { lang: uiLang, enabled: notifEnabled } });
+}
+
+async function enableNotifications(): Promise<boolean> {
+  const result = await BackgroundRunner.requestPermissions({ apis: ["notifications"] });
+  return result.notifications !== "denied";
+}
+
+async function setupNotifications() {
+  if (!NATIVE) return;
+  try {
+    if (notifEnabled && !(await enableNotifications())) {
+      notifEnabled = false;
+      save("notifEnabled", false);
+    }
+    renderNotifButton();
+    await configureRunner();
+    // Premier passage tout de suite : mémorise les incidents déjà publiés.
+    await BackgroundRunner.dispatchEvent({ label: RUNNER, event: "checkNews", details: {} });
+  } catch {
+    /* tâche de fond indisponible : l'app reste utilisable */
+  }
+}
+
+async function toggleNotifications() {
+  const next = !notifEnabled;
+  if (next && !(await enableNotifications())) {
+    showFlash(t().notifDenied);
+    return;
+  }
+  notifEnabled = next;
+  save("notifEnabled", notifEnabled);
+  renderNotifButton();
+  showFlash(notifEnabled ? t().notifOn : t().notifOff);
+  await configureRunner().catch(() => {});
+}
+
 async function refresh() {
   if (loading) return;
   loading = true;
@@ -270,6 +339,7 @@ async function refresh() {
 
 function bindEvents() {
   $("#refresh").addEventListener("click", refresh);
+  $("#notif")?.addEventListener("click", toggleNotifications);
   $("#search").addEventListener("input", (e) => {
     query = (e.target as HTMLInputElement).value;
     render();
@@ -286,13 +356,17 @@ function bindEvents() {
     uiLang = btn.dataset.l as UiLang;
     save("uiLang", uiLang);
     applyLanguage();
+    renderNotifButton();
     renderStatus();
     render();
+    if (NATIVE) configureRunner().catch(() => {});
   });
 }
 
 buildShell();
 applyLanguage();
+renderNotifButton();
 renderStatus();
 render();
 refresh();
+setupNotifications();

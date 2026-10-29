@@ -65,6 +65,10 @@ type Strings = {
   cleared: string;
   cached: (n: number) => string;
   now: string;
+  notifOn: string;
+  notifOff: string;
+  notifDenied: string;
+  download: string;
   tagline: string;
   hypothesis: string;
   today: string;
@@ -123,6 +127,10 @@ export const T: Record<UiLang, Strings> = {
     today: "Aujourd'hui",
     analysis: "Analyse complète",
     incidents: (n) => `${n} ${n > 1 ? "incidents" : "incident"}`,
+    notifOn: "Notifications activées pour les incidents critiques et élevés",
+    notifOff: "Notifications désactivées",
+    notifDenied: "Autorise les notifications dans les réglages Android",
+    download: "Télécharger l'app Android",
     now: "à l'instant",
     hoursAgo: (h) => `il y a ${h} h`,
     yesterday: "hier",
@@ -173,6 +181,10 @@ export const T: Record<UiLang, Strings> = {
     today: "Today",
     analysis: "Full analysis",
     incidents: (n) => `${n} ${n === 1 ? "incident" : "incidents"}`,
+    notifOn: "Notifications on for critical and high incidents",
+    notifOff: "Notifications off",
+    notifDenied: "Allow notifications in Android settings",
+    download: "Download the Android app",
     now: "just now",
     hoursAgo: (h) => `${h} h ago`,
     yesterday: "yesterday",
@@ -223,6 +235,10 @@ export const T: Record<UiLang, Strings> = {
     today: "Bugün",
     analysis: "Tam analiz",
     incidents: (n) => `${n} olay`,
+    notifOn: "Kritik ve yüksek olaylar için bildirimler açık",
+    notifOff: "Bildirimler kapalı",
+    notifDenied: "Android ayarlarından bildirimlere izin verin",
+    download: "Android uygulamasını indir",
     now: "az önce",
     hoursAgo: (h) => `${h} sa önce`,
     yesterday: "dün",
@@ -273,6 +289,10 @@ export const T: Record<UiLang, Strings> = {
     today: "اليوم",
     analysis: "التحليل الكامل",
     incidents: (n) => `${n} حادثة`,
+    notifOn: "الإشعارات مفعّلة للحوادث الحرجة والعالية",
+    notifOff: "الإشعارات متوقفة",
+    notifDenied: "اسمح بالإشعارات من إعدادات أندرويد",
+    download: "تنزيل تطبيق أندرويد",
     now: "الآن",
     hoursAgo: (h) => `منذ ${h} ساعة`,
     yesterday: "أمس",
@@ -323,6 +343,10 @@ export const T: Record<UiLang, Strings> = {
     today: "Сегодня",
     analysis: "Полный разбор",
     incidents: (n) => `Инцидентов: ${n}`,
+    notifOn: "Уведомления о критичных и высоких инцидентах включены",
+    notifOff: "Уведомления выключены",
+    notifDenied: "Разрешите уведомления в настройках Android",
+    download: "Скачать приложение для Android",
     now: "только что",
     hoursAgo: (h) => `${h} ч назад`,
     yesterday: "вчера",

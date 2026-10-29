@@ -48,6 +48,9 @@ jobs:
 
       - run: npm run build
 
+      - name: Joindre l'APK Android au site
+        run: cp release/VeilleCyber.apk dist/VeilleCyber.apk
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -3,6 +3,16 @@
   "appName": "Veille Cyber",
   "webDir": "dist",
   "android": {
-    "backgroundColor": "#0d1117"
+    "backgroundColor": "#0b0c0e"
+  },
+  "plugins": {
+    "BackgroundRunner": {
+      "label": "fr.alertis.actucyber.check",
+      "src": "runners/background.js",
+      "event": "checkNews",
+      "repeat": true,
+      "interval": 30,
+      "autoStart": true
+    }
   }
 }

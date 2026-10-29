@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 *.apk
 public/data.json
+!release/VeilleCyber.apk

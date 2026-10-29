@@ -65,6 +65,11 @@ type Strings = {
   cleared: string;
   cached: (n: number) => string;
   now: string;
+  tagline: string;
+  hypothesis: string;
+  today: string;
+  analysis: string;
+  incidents: (n: number) => string;
   updated: string;
   offline: string;
   hoursAgo: (h: number) => string;
@@ -113,6 +118,11 @@ export const T: Record<UiLang, Strings> = {
     cached: (n) => `${n} articles en cache.`,
     updated: "Mis à jour",
     offline: "Hors ligne : dernières données enregistrées",
+    tagline: "Les cyberattaques du monde entier, expliquées simplement.",
+    hypothesis: "Hypothèse",
+    today: "Aujourd'hui",
+    analysis: "Analyse complète",
+    incidents: (n) => `${n} ${n > 1 ? "incidents" : "incident"}`,
     now: "à l'instant",
     hoursAgo: (h) => `il y a ${h} h`,
     yesterday: "hier",
@@ -158,6 +168,11 @@ export const T: Record<UiLang, Strings> = {
     cached: (n) => `${n} cached articles.`,
     updated: "Updated",
     offline: "Offline: showing saved data",
+    tagline: "Cyberattacks from around the world, explained simply.",
+    hypothesis: "Hypothesis",
+    today: "Today",
+    analysis: "Full analysis",
+    incidents: (n) => `${n} ${n === 1 ? "incident" : "incidents"}`,
     now: "just now",
     hoursAgo: (h) => `${h} h ago`,
     yesterday: "yesterday",
@@ -203,6 +218,11 @@ export const T: Record<UiLang, Strings> = {
     cached: (n) => `Önbellekte ${n} makale.`,
     updated: "Güncellendi",
     offline: "Çevrimdışı: kayıtlı veriler gösteriliyor",
+    tagline: "Dünyanın dört bir yanından siber saldırılar, sade bir dille.",
+    hypothesis: "Varsayım",
+    today: "Bugün",
+    analysis: "Tam analiz",
+    incidents: (n) => `${n} olay`,
     now: "az önce",
     hoursAgo: (h) => `${h} sa önce`,
     yesterday: "dün",
@@ -248,6 +268,11 @@ export const T: Record<UiLang, Strings> = {
     cached: (n) => `${n} مقالة محفوظة.`,
     updated: "آخر تحديث",
     offline: "غير متصل: عرض البيانات المحفوظة",
+    tagline: "الهجمات السيبرانية حول العالم، بشرح مبسّط.",
+    hypothesis: "فرضية",
+    today: "اليوم",
+    analysis: "التحليل الكامل",
+    incidents: (n) => `${n} حادثة`,
     now: "الآن",
     hoursAgo: (h) => `منذ ${h} ساعة`,
     yesterday: "أمس",
@@ -293,6 +318,11 @@ export const T: Record<UiLang, Strings> = {
     cached: (n) => `В кэше статей: ${n}.`,
     updated: "Обновлено",
     offline: "Нет сети: показаны сохранённые данные",
+    tagline: "Кибератаки со всего мира — простыми словами.",
+    hypothesis: "Гипотеза",
+    today: "Сегодня",
+    analysis: "Полный разбор",
+    incidents: (n) => `Инцидентов: ${n}`,
     now: "только что",
     hoursAgo: (h) => `${h} ч назад`,
     yesterday: "вчера",
